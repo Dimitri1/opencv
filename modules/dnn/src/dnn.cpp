@@ -66,7 +66,13 @@
 
 #include <opencv2/core/utils/configuration.private.hpp>
 #include <opencv2/core/utils/logger.hpp>
+#include "json.hpp"
+#include <iostream>
+#include <fstream>
 
+using json = nlohmann::json;
+json jlayers;
+#define ONFLY_DIMS_JDUMP
 namespace cv {
 namespace dnn {
 CV__DNN_INLINE_NS_BEGIN
@@ -2453,22 +2459,30 @@ struct Net::Impl : public detail::NetImplBase
             return;
 
         size_t ninputs = ld.inputBlobsId.size();
-#if 0
-        printf("layer %s:", ld.name.c_str());
-        for (size_t i = 0; i < ninputs; i++)
-        {
-            int inp_lid = ld.inputBlobsId[i].lid;
-            LayerData &inp_ld = layers[inp_lid];
-            int inp_outputs = (int)inp_ld.outputBlobs.size();
-            std::cout << " " << inp_ld.name << "(" << inp_outputs;
+#ifdef ONFLY_DIMS_JDUMP
+		json layer;
+		layer["name"] = ld.name;
+		layer["num_input_tensor"] = ninputs;
+		layer["input_tensors"];
+		for (size_t i = 0; i < ninputs; i++) {
+			json input;
+			int inp_lid = ld.inputBlobsId[i].lid;
+			LayerData &inp_ld = layers[inp_lid];
+			int inp_outputs = (int) inp_ld.outputBlobs.size();
+			input["name"] = inp_ld.name;
 
-            for( int j = 0; j < inp_outputs; j++ )
-            {
-                std::cout << (j == 0 ? ": " : ", ") << inp_ld.outputBlobs[j].size;
-            }
-            std::cout << ")";
-        }
-        printf("\n");
+			for (int j = 0; j < inp_outputs; j++) {
+				std::stringstream sstr;
+				sstr << inp_ld.outputBlobs[j].size;
+				std::string str;
+				while (sstr >> str) {
+					if (str == "x")
+						continue;
+					input["size"].push_back(atoi(str.c_str()));
+				}
+			}
+			layer["input_tensors"].push_back(input);
+		}
 #endif
 
         //determine parent layers
@@ -2518,25 +2532,34 @@ struct Net::Impl : public detail::NetImplBase
         for (int i = 0; i < ld.internalBlobsWrappers.size(); ++i)
             ld.internalBlobsWrappers[i] = wrap(ld.internals[i]);
 
-        Ptr<Layer> layerPtr = ld.getLayerInstance();
-        {
-            std::vector<Mat> inps(ld.inputBlobs.size());
-            for (int i = 0; i < ld.inputBlobs.size(); ++i)
-            {
-                inps[i] = *ld.inputBlobs[i];
-            }
-            layerPtr->finalize(inps, ld.outputBlobs);
-            layerPtr->preferableTarget = preferableTarget;
-#if 0
-            std::cout << "\toutputs:";
-            size_t noutputs = ld.outputBlobs.size();
-            for (size_t j = 0; j < noutputs; j++)
-            {
-                std::cout << (j == 0 ? " " : ", ") << ld.outputBlobs[j].size;
-            }
-            std::cout << "\n";
+		    Ptr<Layer> layerPtr = ld.getLayerInstance();
+		    {
+			    std::vector<Mat> inps(ld.inputBlobs.size());
+			    for (int i = 0; i < ld.inputBlobs.size(); ++i) {
+				    inps[i] = *ld.inputBlobs[i];
+			    }
+			    layerPtr->finalize(inps, ld.outputBlobs);
+			    layerPtr->preferableTarget = preferableTarget;
+#ifdef ONFLY_DIMS_JDUMP
+			    size_t noutputs = ld.outputBlobs.size();
+			    layer["num_output_tensor"] = noutputs;
+			    layer["output_tensors"];
+			    for (size_t j = 0; j < noutputs; j++) {
+				    json output;
+				    std::stringstream sstr;
+				    sstr << ld.outputBlobs[j].size;
+
+				    std::string str;
+				    while (sstr >> str) {
+					    if (str == "x")
+						    continue;
+					    output["size"].push_back(atoi(str.c_str()));
+				    }
+				    layer["output_tensors"].push_back(output);
+			    }
 #endif
-        }
+			    jlayers.push_back(layer);
+		    }
 
         // After allocation of layer, we decrease counters to it's input blobs.
         blobManager.releaseReferences(ld.inputBlobsId);
@@ -4036,6 +4059,7 @@ Mat Net::forward(const String& outputName)
     CV_TRACE_FUNCTION();
     CV_Assert(!empty());
 
+    std::ofstream outfile("dims.json");
     String layerName = outputName;
 
     if (layerName.empty())
@@ -4048,6 +4072,13 @@ Mat Net::forward(const String& outputName)
     std::vector<LayerPin> pins(1, impl->getPinByAlias(layerName));
     impl->setUpNet(pins);
     impl->forwardToLayer(impl->getLayerData(layerName));
+
+    //needs to insert layers into a json {} that is
+    //requiered to json ifstream deserialization
+    json finalize;
+    finalize["main"];
+    finalize["main"]= jlayers;
+    outfile << finalize << std::flush;
 
     return impl->getBlob(layerName);
 }
@@ -4352,6 +4383,12 @@ Mat Net::getParam(LayerId layer, int numParam)
     std::vector<Mat> &layerBlobs = ld.getLayerInstance()->blobs;
     CV_Assert(numParam < (int)layerBlobs.size());
     return layerBlobs[numParam];
+}
+
+LayerParams Net::getLayerParams(LayerId layer)
+{
+    LayerData &ld = impl->getLayerData(layer);
+    return ld.params;
 }
 
 void Net::setParam(LayerId layer, int numParam, const Mat &blob)
