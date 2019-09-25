@@ -151,6 +151,9 @@ void blobFromTensor(const tensorflow::TensorProto &tensor, Mat &dstBlob)
         case tensorflow::DT_DOUBLE:
             parseTensor<double>(tensor, dstBlob);
             break;
+	case tensorflow::DT_INT32:
+            parseTensor<int>(tensor, dstBlob);
+            break;
         default:
             CV_Error(Error::StsError, "Tensor's data type is not supported");
             break;
