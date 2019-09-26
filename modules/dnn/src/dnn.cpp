@@ -1780,7 +1780,7 @@ struct Net::Impl
 				while (sstr >> str) {
 					if (str == "x")
 						continue;
-					input["size"].push_back(atoi(str.c_str()));
+					input["shape"].push_back(atoi(str.c_str()));
 				}
 			}
 			layer["input_tensors"].push_back(input);
@@ -1859,7 +1859,7 @@ struct Net::Impl
 				    while (sstr >> str) {
 					    if (str == "x")
 						    continue;
-					    output["size"].push_back(atoi(str.c_str()));
+					    output["shape"].push_back(atoi(str.c_str()));
 				    }
 				    layer["output_tensors"].push_back(output);
 			    }
