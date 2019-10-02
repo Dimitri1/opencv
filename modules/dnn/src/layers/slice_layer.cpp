@@ -90,7 +90,7 @@ public:
             {
                 int start = begins.get<int>(i);
                 int sizeOrEnd = sizesOrEnds.get<int>(i);  // It may be negative to reverse indexation.
-                CV_Assert(start >= 0);
+                //CV_Assert(start >= 0);
 
                 sliceRanges[0][i].start = start;
                 if (params.has("size"))

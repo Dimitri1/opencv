@@ -59,6 +59,7 @@
 #include "json.hpp"
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 using json = nlohmann::json;
 json jlayers;
@@ -1766,13 +1767,16 @@ struct Net::Impl
 		layer["name"] = ld.name;
 		layer["num_input_tensor"] = ninputs;
 		layer["input_tensors"];
+		json input_tensor_rlist;
+		std::cout << "============== layer =============== " << ld.name << "\n";
 		for (size_t i = 0; i < ninputs; i++) {
 			json input;
 			int inp_lid = ld.inputBlobsId[i].lid;
 			LayerData &inp_ld = layers[inp_lid];
 			int inp_outputs = (int) inp_ld.outputBlobs.size();
 			input["name"] = inp_ld.name;
-
+			std::cout << "found input " <<  inp_ld.name << " id " << inp_lid << "\n";
+			
 			for (int j = 0; j < inp_outputs; j++) {
 				std::stringstream sstr;
 				sstr << inp_ld.outputBlobs[j].size;
@@ -1783,7 +1787,10 @@ struct Net::Impl
 					input["shape"].push_back(atoi(str.c_str()));
 				}
 			}
-			layer["input_tensors"].push_back(input);
+			input_tensor_rlist.push_back(input);
+		}
+		for (json::iterator iit = input_tensor_rlist.begin(); iit != input_tensor_rlist.end(); iit++)		    {
+	 			layer["input_tensors"].push_back(*iit);
 		}
 #endif
 
@@ -2761,7 +2768,7 @@ Mat Net::forward(const String& outputName)
     json finalize;
     finalize["main"];
     finalize["main"]= jlayers;
-    outfile << finalize << std::flush;
+    outfile << std::setw(2) << finalize << std::flush;
 
     return impl->getBlob(layerName);
 }
