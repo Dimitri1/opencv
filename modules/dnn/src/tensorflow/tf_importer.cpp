@@ -2000,6 +2000,13 @@ void TFImporter::populateNet(Net dstNet)
             layer_id[name] = id;
             connectToAllBlobs(layer_id, dstNet, parsePin(layer.input(0)), id, layer.input_size());
         }
+	else if (type == "LeakyRelu")
+	{
+		layerParams.set("negative_slope", 0.1);
+		int id = dstNet.addLayer(name, "ReLU", layerParams);
+		layer_id[name] = id;
+		connectToAllBlobs(layer_id, dstNet, parsePin(layer.input(0)), id, layer.input_size());
+	}
         else
         {
             // Importer does not know how to map this TensorFlow's operation onto OpenCV's layer.
