@@ -467,6 +467,7 @@ void ONNXImporter::handleNode(const opencv_onnx::NodeProto& node_proto_)
         layerParams.name = name;
         layerParams.type = layer_type;
         layerParams.set("has_dynamic_shapes", hasDynamicShapes);
+	std::cerr << " TYPE " << layer_type << "\n";
 
         if (layer_type == "MaxPool")
         {
@@ -480,6 +481,13 @@ void ONNXImporter::handleNode(const opencv_onnx::NodeProto& node_proto_)
             layerParams.set("pool", "AVE");
             layerParams.set("ceil_mode", layerParams.has("pad_mode"));
             layerParams.set("ave_pool_padded_area", framework_name == "pytorch");
+        }
+        else if (layer_type == "ArgMax")
+        {
+            layerParams.type = "ArgMax";
+            layerParams.set("sense", "MAX");
+            //layerParams.set("ceil_mode", layerParams.has("pad_mode"));
+            //layerParams.set("ave_pool_padded_area", framework_name == "pytorch");
         }
         else if (layer_type == "GlobalAveragePool" || layer_type == "GlobalMaxPool" ||
                 layer_type == "ReduceMean" || layer_type == "ReduceSum" || layer_type == "ReduceMax")
@@ -1596,6 +1604,7 @@ void ONNXImporter::handleNode(const opencv_onnx::NodeProto& node_proto_)
         {
             if (constBlobs.find(node_proto.input(0)) != constBlobs.end())
             {
+		std::cerr <<" FALL IN CAST LAYER CAST " << "\n";
                 Mat blob = getBlob(node_proto, 0);
                 int type;
                 switch (layerParams.get<int>("to"))

@@ -266,6 +266,30 @@ CV__DNN_INLINE_NS_BEGIN
         static Ptr<PoolingLayer> create(const LayerParams& params);
     };
 
+    class CV_EXPORTS ArgMaxLayer : public Layer
+    {
+    public:
+        int type;
+        std::vector<size_t> kernel_size, strides;
+        std::vector<size_t> pads_begin, pads_end;
+        bool globalPooling; //!< Flag is true if at least one of the axes is global pooled.
+        std::vector<bool> isGlobalPooling;
+        bool computeMaxIdx;
+        String padMode;
+        bool ceilMode;
+        // If true for average pooling with padding, divide an every output region
+        // by a whole kernel area. Otherwise exclude zero padded values and divide
+        // by number of real values.
+        bool avePoolPaddedArea;
+        // ROIPooling parameters.
+        Size pooledSize;
+        float spatialScale;
+        // PSROIPooling parameters.
+        int psRoiOutChannels;
+
+        static Ptr<ArgMaxLayer> create(const LayerParams& params);
+    };
+
     class CV_EXPORTS SoftmaxLayer : public Layer
     {
     public:

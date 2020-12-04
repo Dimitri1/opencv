@@ -98,6 +98,8 @@ public:
                 CV_Assert(curShape.size() == outputs[0].size());
                 for (int curAxis = 0; curAxis < outputs[0].size(); curAxis++)
                 {
+		    std::cerr << "curShape[curAxis] "<< curShape[curAxis] << "\n";
+		    std::cerr << "outputs[0][curAxis] "<< outputs[0][curAxis] << "\n";
                     if (curAxis != cAxis && outputs[0][curAxis] != curShape[curAxis])
                         CV_Error(Error::StsBadSize, "Inconsistent shape for ConcatLayer");
                 }
