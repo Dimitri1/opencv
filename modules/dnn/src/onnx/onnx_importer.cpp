@@ -358,6 +358,14 @@ void ONNXImporter::addLayer(LayerParams& layerParams,
             CV_Assert(shapeIt != outShapes.end());
             layerInpShapes.push_back(shapeIt->second);
         }
+	else if ( layerParams.type == "ReLU6")
+	{
+		if (constBlobs.find(node_proto.input(j)) != constBlobs.end())
+                {
+		    Mat blob = getBlob(node_proto, j);	
+		    layerInpShapes.push_back(shape(blob));
+		}
+	}
     }
     // Compute shape of output blob for this layer.
     Ptr<Layer> layer = dstNet.getLayer(id);  // FIXIT: avoid instantiation of layers during the import stage
@@ -393,6 +401,14 @@ void ONNXImporter::populateNet()
             << ", inputs = " << graph_proto.input_size()
             << ", outputs = " << graph_proto.output_size()
             );
+    std::cerr << "DNN/ONNX: loading ONNX"
+            << (model_proto.has_ir_version() ? cv::format(" v%d", (int)model_proto.ir_version()) : cv::String())
+            << " model produced by '" << framework_name << "'"
+            << (framework_version.empty() ? cv::String() : cv::format(":%s", framework_version.c_str()))
+            << ". Number of nodes = " << graph_proto.node_size()
+            << ", inputs = " << graph_proto.input_size()
+            << ", outputs = " << graph_proto.output_size()
+            << "\n";
 
     simplifySubgraphs(graph_proto);
 
@@ -455,9 +471,8 @@ void ONNXImporter::handleNode(const opencv_onnx::NodeProto& node_proto_)
     CV_Assert(node_proto.output_size() >= 1);
     std::string name = node_proto.output(0);
     std::string layer_type = node_proto.op_type();
-    CV_LOG_DEBUG(NULL, "DNN/ONNX: processing node with " << node_proto.input_size() << " inputs and " << node_proto.output_size() << " outputs: "
-            << cv::format("[%s]:(%s)", layer_type.c_str(), name.c_str())
-    );
+    std::cerr << "DNN/ONNX: processing node with " << node_proto.input_size() << " inputs and " << node_proto.output_size() << " outputs: "
+            << cv::format("[%s]:(%s)", layer_type.c_str(), name.c_str()) ;
 
     try
     {
@@ -486,8 +501,10 @@ void ONNXImporter::handleNode(const opencv_onnx::NodeProto& node_proto_)
         {
             layerParams.type = "ArgMax";
             layerParams.set("sense", "MAX");
-            //layerParams.set("ceil_mode", layerParams.has("pad_mode"));
-            //layerParams.set("ave_pool_padded_area", framework_name == "pytorch");
+        }
+        else if (layer_type == "Exp")
+        {
+	    layerParams.type = "Exp";
         }
         else if (layer_type == "GlobalAveragePool" || layer_type == "GlobalMaxPool" ||
                 layer_type == "ReduceMean" || layer_type == "ReduceSum" || layer_type == "ReduceMax")

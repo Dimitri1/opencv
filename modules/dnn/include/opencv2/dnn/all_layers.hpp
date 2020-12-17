@@ -290,6 +290,13 @@ CV__DNN_INLINE_NS_BEGIN
         static Ptr<ArgMaxLayer> create(const LayerParams& params);
     };
 
+    class CV_EXPORTS ExpLayer : public Layer
+    {
+    public:
+        int type;
+        static Ptr<ExpLayer> create(const LayerParams& params);
+    };
+
     class CV_EXPORTS SoftmaxLayer : public Layer
     {
     public:
